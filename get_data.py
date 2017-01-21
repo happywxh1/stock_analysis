@@ -25,7 +25,7 @@ def getSP500List():
         col = row.findAll('td')
         if len(col) > 0:
             stock_symb = str(col[0].string.strip())
-            stock_symb.replace('-', '')
+            stock_symb = stock_symb.replace('-', '')
             category = str(col[3].string.strip()).lower().replace(' ', '_')
             sector_tickers[stock_symb] = category
     return sector_tickers
@@ -34,7 +34,8 @@ def getSP500List():
 RENAME = {"Gross Margin %": "Gross Margin %",
             "Earnings Per Share [A-Z]*": "EPS",
             "Free Cash Flow [A-Z]* Mil": "Free Cash Flow",
-            "Revenue [A-Z]* Mil": "Revenue"
+            "Revenue [A-Z]* Mil": "Revenue",
+          "Net Income [A-Z]* Mil": "Net Income"
             }
 
 class gradComanyStats(object):
@@ -48,6 +49,7 @@ class gradComanyStats(object):
         self.end_url = '&region=usa&culture=en-US&cur=&order=asc'
         self.url_additional_params = ''
         self.stock_list = []
+        self.filter_list = []
         self.basic_attrs = []
         self.info_dict = {}
         self.yearly_data = {}
@@ -111,14 +113,14 @@ class gradComanyStats(object):
     def organizeYearlyData(self):
         '''
         organize data by year in order of:
-        Price; Market Price; P/E; Revenue; EPS; Free Cash flow; Gross Margin; Revenue Growth; EPS Growth
+        Price(0); Market Price(1); P/E(2); Revenue(3); EPS(4); Net Income(5); Free Cash flow(6); Gross Margin(7);
+         Revenue Growth(8); EPS Growth(9)
         '''
         for s in self.stock_list:
-            print s
             info = self.info_dict[s]
             self.yearly_data[s] = {}
             for y in range(2012, 2018):
-                l = [info["Revenue"][y-2012], info["EPS"][y-2012], info["Free Cash Flow"][y-2012], info["Gross Margin %"][y-2012]]
+                l = [info["Revenue"][y-2012], info["EPS"][y-2012], info["Net Income"][y-2012], info["Free Cash Flow"][y-2012], info["Gross Margin %"][y-2012]]
 
                 if 2017-y >= len(info["Price"]) or str(y) not in info["Price"][2017-y][0]:
                     l = [None, None, None] + l
@@ -139,7 +141,8 @@ class gradComanyStats(object):
                 self.yearly_data[s][str(y)] = l
 
     def filter(self, s):
-        self.stock_list.remove(s)
+        print s
+        self.filter_list.append(s)
         del self.info_dict[s]
         return
 
@@ -152,28 +155,28 @@ class gradComanyStats(object):
         4. latest PE <= 20
         '''
         for s in self.stock_list:
-            if self.info_dict[s]["EPS"]<=0 or self.info_dict[s]["Price"][2]<=1:
+            info2016 = self.yearly_data[s]["2016"]
+            print info2016
+            if info2016[4]<=0 or info2016[1]<=1:
                 self.filter(s)
-            elif self.info_dict[s]["Free Cash Flow"] < self.info_dict[s]["Revenue"]:
+            elif info2016[6] < info2016[5]:
                 self.filter(s)
-            elif self.yearly_data["2016"][2]>20 or self.yearly_data["2016"][3]<self.yearly_data["2015"][3]:
+            elif info2016[2]>20 or info2016[3]<self.yearly_data[s]["2015"][3]:
                 self.filter(s)
-            elif not (self.yearly_data["2016"][8]>0 and self.yearly_data["2016"][2]/self.yearly_data["2016"][8]<1.2):
+            elif not (info2016[9]>0 and info2016[2]/info2016[9]<1.2):
                 self.filter(s)
             else:
                 continue
 
 if __name__ == '__main__':
     pp = gradComanyStats()
-    #pp.set_stock_list(['AAPL','BABA'])
     sp500 = getSP500List().keys()
-    pp.set_stock_list(sp500[0:100])
-    basic_attrs = ["Gross Margin %", "Earnings Per Share [A-Z]*", "Free Cash Flow [A-Z]* Mil", "Revenue [A-Z]* Mil"]
+    pp.set_stock_list(sp500[0:10]+['AAPL'])
+    basic_attrs = ["Gross Margin %", "Earnings Per Share [A-Z]*", "Free Cash Flow [A-Z]* Mil", "Revenue [A-Z]* Mil", "Net Income [A-Z]* Mil"]
     pp.set_attr_list(basic_attrs)
     pp.gradCompanyData()
     pp.gradStockPrice()
     pp.organizeYearlyData()
-    print pp.yearly_data
     pp.hardCritia()
-    print pp.stock_list
+    print pp.info_dict.keys()
 
