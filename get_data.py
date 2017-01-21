@@ -88,7 +88,7 @@ class gradComanyStats(object):
             url = self.buildUrl(s)
             data = requests.get(url, stream=True)
             self.info_dict[s] = self.grad_attr(data.content)
-        print self.info_dict
+        #print self.info_dict
 
     def gradStockPrice(self):
         # 5y stock price from 2012 - 2017
@@ -118,6 +118,9 @@ class gradComanyStats(object):
         '''
         for s in self.stock_list:
             info = self.info_dict[s]
+            if "Revenue" not in info:
+                self.filter(s)
+                continue
             self.yearly_data[s] = {}
             for y in range(2012, 2018):
                 l = [info["Revenue"][y-2012], info["EPS"][y-2012], info["Net Income"][y-2012], info["Free Cash Flow"][y-2012], info["Gross Margin %"][y-2012]]
@@ -141,7 +144,6 @@ class gradComanyStats(object):
                 self.yearly_data[s][str(y)] = l
 
     def filter(self, s):
-        print s
         self.filter_list.append(s)
         del self.info_dict[s]
         return
@@ -155,6 +157,8 @@ class gradComanyStats(object):
         4. latest PE <= 20
         '''
         for s in self.stock_list:
+            if s in self.filter_list:
+                continue
             info2016 = self.yearly_data[s]["2016"]
             print info2016
             if info2016[4]<=0 or info2016[1]<=1:
@@ -162,8 +166,10 @@ class gradComanyStats(object):
             elif info2016[6] < info2016[5]:
                 self.filter(s)
             elif info2016[2]>20 or info2016[3]<self.yearly_data[s]["2015"][3]:
+                #print self.yearly_data[s]["2015"][3]
+                #print "reason3"
                 self.filter(s)
-            elif not (info2016[9]>0 and info2016[2]/info2016[9]<1.2):
+            elif not (info2016[9]>0): #and info2016[2]/info2016[9]<1.2):
                 self.filter(s)
             else:
                 continue
@@ -171,7 +177,7 @@ class gradComanyStats(object):
 if __name__ == '__main__':
     pp = gradComanyStats()
     sp500 = getSP500List().keys()
-    pp.set_stock_list(sp500[0:10]+['AAPL'])
+    pp.set_stock_list(sp500[100:200])
     basic_attrs = ["Gross Margin %", "Earnings Per Share [A-Z]*", "Free Cash Flow [A-Z]* Mil", "Revenue [A-Z]* Mil", "Net Income [A-Z]* Mil"]
     pp.set_attr_list(basic_attrs)
     pp.gradCompanyData()
