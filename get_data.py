@@ -114,7 +114,7 @@ class gradComanyStats(object):
         '''
         organize data by year in order of:
         Price(0); Market Price(1); P/E(2); Revenue(3); EPS(4); Net Income(5); Free Cash flow(6); Gross Margin(7);
-         Revenue Growth(8); EPS Growth(9)
+         Revenue Growth(8); EPS Growth(9); Net Income Growth(10)
         '''
         for s in self.stock_list:
             info = self.info_dict[s]
@@ -133,12 +133,19 @@ class gradComanyStats(object):
                     l = [price_l[1], price_l[2], price_l[1]/eps if eps!=0 else 0] + l
 
                 if y > 2012:
-                    if(info["Revenue"][y-2013] != 0):
-                        l.append(info["Revenue"][y-2012] / info["Revenue"][y-2013])
+                    if(info["Revenue"][y-2012] != 0):
+                        growth = (info["Revenue"][y-2012] - info["Revenue"][y-2013])/info["Revenue"][y-2012]
+                        l.append(growth)
                     else:
                         l.append(None)
-                    if info["EPS"][y-2013] != 0:
-                        l.append(info["EPS"][y - 2012] / info["EPS"][y - 2013])
+                    if info["EPS"][y-2012] != 0:
+                        growth = (info["EPS"][y - 2012] - info["EPS"][y - 2013])/info["EPS"][y - 2012]
+                        l.append(growth)
+                    else:
+                        l.append(None)
+                    if info["Net Income"][y-2012] != 0:
+                        growth = (info["Net Income"][y - 2012] - info["Net Income"][y - 2013])/info["Net Income"][y - 2012]
+                        l.append(growth)
                     else:
                         l.append(None)
                 self.yearly_data[s][str(y)] = l
@@ -160,12 +167,12 @@ class gradComanyStats(object):
             if s in self.filter_list:
                 continue
             info2016 = self.yearly_data[s]["2016"]
-            print info2016
+            #print info2016
             if info2016[4]<=0 or info2016[1]<=1:
                 self.filter(s)
             elif info2016[6] < info2016[5]:
                 self.filter(s)
-            elif info2016[2]>20 or info2016[3]<self.yearly_data[s]["2015"][3]:
+            elif info2016[2]>25 or info2016[8]<0.05 or info2016[9]<=0 or info2016[10]<0:
                 #print self.yearly_data[s]["2015"][3]
                 #print "reason3"
                 self.filter(s)
@@ -177,7 +184,7 @@ class gradComanyStats(object):
 if __name__ == '__main__':
     pp = gradComanyStats()
     sp500 = getSP500List().keys()
-    pp.set_stock_list(sp500[100:200])
+    pp.set_stock_list(sp500[0:400])
     basic_attrs = ["Gross Margin %", "Earnings Per Share [A-Z]*", "Free Cash Flow [A-Z]* Mil", "Revenue [A-Z]* Mil", "Net Income [A-Z]* Mil"]
     pp.set_attr_list(basic_attrs)
     pp.gradCompanyData()
