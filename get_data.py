@@ -108,7 +108,11 @@ class gradComanyStats(object):
                     except:
                         continue
                     # time; stock price; market price
-                    self.info_dict[s]["Price"].append([row[0], float(row[4]), float(row[4])*int(row[5].replace(',',''))])
+                    #print row
+                    try:
+                        self.info_dict[s]["Price"].append([row[0], float(row[4]), float(row[4])*int(row[5].replace(',',''))])
+                    except:
+                        continue
 
     def organizeYearlyData(self):
         '''
@@ -172,7 +176,8 @@ class gradComanyStats(object):
                 self.filter(s)
             elif info2016[6] < info2016[5]:
                 self.filter(s)
-            elif info2016[2]>25 or info2016[8]<0.05 or info2016[9]<=0 or info2016[10]<0:
+            # filter stock which PE>20 and PEG<1.2
+            elif (info2016[2]>20 and info2016[2]/info2016[10]/100<1.2) or info2016[8]<0.05 or info2016[9]<=0 or info2016[10]<0:
                 #print self.yearly_data[s]["2015"][3]
                 #print "reason3"
                 self.filter(s)
@@ -184,7 +189,7 @@ class gradComanyStats(object):
 if __name__ == '__main__':
     pp = gradComanyStats()
     sp500 = getSP500List().keys()
-    pp.set_stock_list(sp500[0:400])
+    pp.set_stock_list(sp500)
     basic_attrs = ["Gross Margin %", "Earnings Per Share [A-Z]*", "Free Cash Flow [A-Z]* Mil", "Revenue [A-Z]* Mil", "Net Income [A-Z]* Mil"]
     pp.set_attr_list(basic_attrs)
     pp.gradCompanyData()
