@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import urllib2
+import urllib.request
 import csv
 import re
 import pytz
@@ -15,8 +15,8 @@ import requests
 def getSP500List():
     site_url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     hdr = {'User-Agent': 'Mozilla/5.0'}
-    req = urllib2.Request(site_url, headers=hdr)
-    page = urllib2.urlopen(req)
+    req = urllib.request.Request(site_url, headers=hdr)
+    page = urllib.request.urlopen(req)
     soup = BeautifulSoup(page)
 
     table = soup.find('table', {'class': 'wikitable sortable'})
@@ -66,7 +66,8 @@ class gradComanyStats(object):
 
     def grad_attr(self, data):
         dict = {}
-        csv_data = csv.reader(data.split('\n'), delimiter=',')
+        #print(data.decode().split('\n'))
+        csv_data = csv.reader(data.decode().split('\n'), delimiter=',')
         csv_list = list(csv_data)
         for attr in self.basic_attrs:
             for row in csv_list:
@@ -99,7 +100,7 @@ class gradComanyStats(object):
             url = "http://performance.morningstar.com/perform/Performance/stock/exportStockPrice.action?t={}&" \
                  "pd=5y&freq=a&sd=&ed=&pg=0&culture=en-US&order=asc".format(s)
             data = requests.get(url, stream=True)
-            csv_data = csv.reader(data.content.split('\n'), delimiter=',')
+            csv_data = csv.reader(data.content.decode().split('\n'), delimiter=',')
             for row in csv_data:
                 if len(row)>5:
                     try:
@@ -177,14 +178,18 @@ class gradComanyStats(object):
             elif info2016[6] < info2016[5]:
                 self.filter(s)
             # filter stock which PE>20 and PEG<1.2
-            elif (info2016[2]>20 and info2016[2]/info2016[10]/100<1.2) or info2016[8]<0.05 or info2016[9]<=0 or info2016[10]<0:
+            elif info2016[2]>50 or info2016[8]<0.05 or info2016[9]<=0 or info2016[10]<0:
                 #print self.yearly_data[s]["2015"][3]
                 #print "reason3"
                 self.filter(s)
             elif not (info2016[9]>0): #and info2016[2]/info2016[9]<1.2):
                 self.filter(s)
+            elif (info2016[2]>20 and info2016[2]/info2016[10]/100>1.15):
+                self.filter(s)
             else:
-                continue
+                if info2016[2]>20:
+                    #print the high growth stock
+                    print(s)
 
 if __name__ == '__main__':
     pp = gradComanyStats()
@@ -196,5 +201,5 @@ if __name__ == '__main__':
     pp.gradStockPrice()
     pp.organizeYearlyData()
     pp.hardCritia()
-    print pp.info_dict.keys()
+    print(pp.info_dict.keys())
 
