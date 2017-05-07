@@ -171,23 +171,24 @@ class gradComanyStats(object):
         for s in self.stock_list:
             if s in self.filter_list:
                 continue
-            info2016 = self.yearly_data[s]["2016"]
-            #print info2016
-            if info2016[4]<=0 or info2016[1]<=1:
+            info = self.yearly_data[s]["2017"]
+            if None in info:
                 self.filter(s)
-            elif info2016[6] < info2016[5]:
+                continue;
+            #print info
+            if info[4]<=0 or info[1]<=1:
+                self.filter(s)
+            elif info[6] < info[5]:
                 self.filter(s)
             # filter stock which PE>20 and PEG<1.2
-            elif info2016[2]>50 or info2016[8]<0.05 or info2016[9]<=0 or info2016[10]<0:
-                #print self.yearly_data[s]["2015"][3]
-                #print "reason3"
+            elif info[2]>50 or info[8]<0.05 or info[9]<=0 or info[10]<0:
                 self.filter(s)
-            elif not (info2016[9]>0): #and info2016[2]/info2016[9]<1.2):
+            elif not (info[9]>0): #and info2016[2]/info2016[9]<1.2):
                 self.filter(s)
-            elif (info2016[2]>20 and info2016[2]/info2016[10]/100>1.15):
+            elif (info[2]>20 and info[2]/info[10]/100>1.1):
                 self.filter(s)
             else:
-                if info2016[2]>20:
+                if info[2]>20:
                     #print the high growth stock
                     print(s)
 
