@@ -8,7 +8,6 @@ import pandas as pd
 
 from bs4 import BeautifulSoup
 from datetime import datetime
-from pandas.io.data import DataReader
 import requests
 
 
@@ -92,15 +91,17 @@ class gradComanyStats(object):
         #print self.info_dict
 
     def gradStockPrice(self):
-        # 5y stock price from 2012 - 2017
+        # 5y stock price from 2013 - current
         # Note that some stock on market < 5y; so be careful
         for s in self.stock_list:
             if "Stock Price" not in self.info_dict[s]:
                 self.info_dict[s]["Price"] = []
             url = "http://performance.morningstar.com/perform/Performance/stock/exportStockPrice.action?t={}&" \
                  "pd=5y&freq=a&sd=&ed=&pg=0&culture=en-US&order=asc".format(s)
-            data = requests.get(url, stream=True)
+            hdr = {'Referer': 'http://financials.morningstar.com/ratios/r.html?t=X&region=USA&culture=en_US'}
+            data = requests.get(url, headers=hdr, stream=True)
             csv_data = csv.reader(data.content.decode().split('\n'), delimiter=',')
+            #print(url)
             for row in csv_data:
                 if len(row)>5:
                     try:
@@ -109,7 +110,7 @@ class gradComanyStats(object):
                     except:
                         continue
                     # time; stock price; market price
-                    #print row
+                    #print(row)
                     try:
                         self.info_dict[s]["Price"].append([row[0], float(row[4]), float(row[4])*int(row[5].replace(',',''))])
                     except:
@@ -121,35 +122,37 @@ class gradComanyStats(object):
         Price(0); Market Price(1); P/E(2); Revenue(3); EPS(4); Net Income(5); Free Cash flow(6); Gross Margin(7);
          Revenue Growth(8); EPS Growth(9); Net Income Growth(10)
         '''
+        startYear = 2013
+        currentYear = 2018
         for s in self.stock_list:
             info = self.info_dict[s]
             if "Revenue" not in info:
                 self.filter(s)
                 continue
             self.yearly_data[s] = {}
-            for y in range(2012, 2018):
-                l = [info["Revenue"][y-2012], info["EPS"][y-2012], info["Net Income"][y-2012], info["Free Cash Flow"][y-2012], info["Gross Margin %"][y-2012]]
+            for y in range(startYear, currentYear + 1):
+                l = [info["Revenue"][y-startYear], info["EPS"][y-startYear], info["Net Income"][y-startYear], info["Free Cash Flow"][y-startYear], info["Gross Margin %"][y-startYear]]
 
-                if 2017-y >= len(info["Price"]) or str(y) not in info["Price"][2017-y][0]:
+                if currentYear-y >= len(info["Price"]) or str(y) not in info["Price"][currentYear-y][0]:
                     l = [None, None, None] + l
                 else:
-                    price_l = info["Price"][2017-y]
+                    price_l = info["Price"][currentYear-y]
                     eps = l[1]
                     l = [price_l[1], price_l[2], price_l[1]/eps if eps!=0 else 0] + l
 
-                if y > 2012:
-                    if(info["Revenue"][y-2012] != 0):
-                        growth = (info["Revenue"][y-2012] - info["Revenue"][y-2013])/info["Revenue"][y-2012]
+                if y > startYear:
+                    if(info["Revenue"][y-startYear] != 0):
+                        growth = (info["Revenue"][y-startYear] - info["Revenue"][y-startYear-1])/info["Revenue"][y-startYear]
                         l.append(growth)
                     else:
                         l.append(None)
-                    if info["EPS"][y-2012] != 0:
-                        growth = (info["EPS"][y - 2012] - info["EPS"][y - 2013])/info["EPS"][y - 2012]
+                    if info["EPS"][y-startYear] != 0:
+                        growth = (info["EPS"][y - startYear] - info["EPS"][y - startYear-1])/info["EPS"][y - startYear]
                         l.append(growth)
                     else:
                         l.append(None)
-                    if info["Net Income"][y-2012] != 0:
-                        growth = (info["Net Income"][y - 2012] - info["Net Income"][y - 2013])/info["Net Income"][y - 2012]
+                    if info["Net Income"][y-startYear] != 0:
+                        growth = (info["Net Income"][y - startYear] - info["Net Income"][y - startYear-1])/info["Net Income"][y - startYear]
                         l.append(growth)
                     else:
                         l.append(None)
@@ -171,11 +174,11 @@ class gradComanyStats(object):
         for s in self.stock_list:
             if s in self.filter_list:
                 continue
-            info = self.yearly_data[s]["2017"]
+            info = self.yearly_data[s]["2016"]
             if None in info:
                 self.filter(s)
                 continue;
-            #print info
+            #print(info)
             if info[4]<=0 or info[1]<=1:
                 self.filter(s)
             elif info[6] < info[5]:
@@ -183,7 +186,7 @@ class gradComanyStats(object):
             # filter stock which PE>20 and PEG<1.2
             elif info[2]>50 or info[8]<0.05 or info[9]<=0 or info[10]<0:
                 self.filter(s)
-            elif not (info[9]>0): #and info2016[2]/info2016[9]<1.2):
+            elif not (info[9]>0 and info[2]/info[9]/100.0<1.2):
                 self.filter(s)
             elif (info[2]>20 and info[2]/info[10]/100>1.1):
                 self.filter(s)
@@ -195,7 +198,7 @@ class gradComanyStats(object):
 if __name__ == '__main__':
     pp = gradComanyStats()
     sp500 = getSP500List().keys()
-    pp.set_stock_list(sp500)
+    pp.set_stock_list(list(sp500)[:100])
     basic_attrs = ["Gross Margin %", "Earnings Per Share [A-Z]*", "Free Cash Flow [A-Z]* Mil", "Revenue [A-Z]* Mil", "Net Income [A-Z]* Mil"]
     pp.set_attr_list(basic_attrs)
     pp.gradCompanyData()
